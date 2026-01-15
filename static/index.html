@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>播客视频生成器</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-weight: 300;
+            background: #0A0A0B;
+            min-height: 100vh;
+            color: #E5E5E7;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(0, 206, 209, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 80%, rgba(0, 206, 209, 0.1) 0%, transparent 50%);
+            animation: perlinNoise 45s ease-in-out infinite;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        @keyframes perlinNoise {
+            0%, 100% {
+                transform: rotate(0deg) scale(1);
+                opacity: 0.5;
+            }
+            50% {
+                transform: rotate(180deg) scale(1.1);
+                opacity: 0.7;
+            }
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 30px 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 300;
+            color: #F5F5DC;
+            margin-bottom: 10px;
+            letter-spacing: -0.02em;
+        }
+
+        .header p {
+            color: rgba(229, 229, 231, 0.7);
+            font-size: 1.1rem;
+        }
+
+        .upload-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .upload-zone {
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 40px 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        .upload-zone:hover,
+        .upload-zone.dragover {
+            border-color: rgba(0, 206, 209, 0.6);
+            background: rgba(0, 206, 209, 0.05);
+        }
+
+        .upload-zone i {
+            font-size: 3rem;
+            color: rgba(0, 206, 209, 0.8);
+            margin-bottom: 15px;
+        }
+
+        .upload-zone h3 {
+            font-size: 1.2rem;
+            font-weight: 400;
+            margin-bottom: 8px;
+            color: #E5E5E7;
+        }
+
+        .upload-zone p {
+            color: rgba(229, 229, 231, 0.5);
+            font-size: 0.9rem;
+        }
+
+        .file-inputs {
+            display: none;
+        }
+
+        .file-preview {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .file-item {
+            flex: 1;
+            min-width: 200px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .file-item.has-file {
+            border-color: rgba(0, 206, 209, 0.4);
+            background: rgba(0, 206, 209, 0.05);
+        }
+
+        .file-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: rgba(229, 229, 231, 0.6);
+        }
+
+        .file-item.has-file .file-icon {
+            background: rgba(0, 206, 209, 0.2);
+            color: #00CED1;
+        }
+
+        .file-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .file-label {
+            font-size: 0.85rem;
+            color: rgba(229, 229, 231, 0.5);
+            margin-bottom: 4px;
+        }
+
+        .file-name {
+            font-size: 0.95rem;
+            color: #E5E5E7;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .file-remove {
+            background: none;
+            border: none;
+            color: rgba(229, 229, 231, 0.4);
+            cursor: pointer;
+            padding: 5px;
+            transition: color 0.2s;
+        }
+
+        .file-remove:hover {
+            color: #e53e3e;
+        }
+
+        .cover-preview {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            object-fit: cover;
+            display: none;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #00CED1, #008B8B);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 25px;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 206, 209, 0.4);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* 进度卡片 */
+        .progress-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            display: none;
+        }
+
+        .progress-card.active {
+            display: block;
+        }
+
+        .progress-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .progress-icon.processing {
+            color: #00CED1;
+            animation: pulse 2s infinite;
+        }
+
+        .progress-icon.completed {
+            color: #48BB78;
+        }
+
+        .progress-icon.failed {
+            color: #e53e3e;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.05); }
+        }
+
+        .progress-title {
+            font-size: 1.5rem;
+            font-weight: 400;
+            margin-bottom: 10px;
+            color: #E5E5E7;
+        }
+
+        .progress-subtitle {
+            color: rgba(229, 229, 231, 0.6);
+            margin-bottom: 25px;
+        }
+
+        .progress-bar-container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            height: 12px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #00CED1, #20B2AA);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .progress-percent {
+            font-size: 1.2rem;
+            color: #00CED1;
+            font-weight: 500;
+        }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #48BB78, #38A169);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            margin-top: 20px;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(72, 187, 120, 0.4);
+        }
+
+        .reset-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #E5E5E7;
+            padding: 12px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: all 0.2s;
+        }
+
+        .reset-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        /* 状态提示 */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin-bottom: 20px;
+        }
+
+        .status-badge.success {
+            background: rgba(72, 187, 120, 0.2);
+            color: #48BB78;
+        }
+
+        .status-badge.error {
+            background: rgba(229, 62, 62, 0.2);
+            color: #e53e3e;
+        }
+
+        /* 功能说明 */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .feature-item {
+            text-align: center;
+            padding: 20px 10px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .feature-item i {
+            font-size: 1.5rem;
+            color: #00CED1;
+            margin-bottom: 10px;
+        }
+
+        .feature-item h4 {
+            font-size: 0.9rem;
+            font-weight: 400;
+            color: #E5E5E7;
+            margin-bottom: 5px;
+        }
+
+        .feature-item p {
+            font-size: 0.8rem;
+            color: rgba(229, 229, 231, 0.5);
+        }
+
+        /* 页脚 */
+        .footer {
+            text-align: center;
+            margin-top: auto;
+            padding-top: 40px;
+            color: rgba(229, 229, 231, 0.4);
+            font-size: 0.85rem;
+        }
+
+        /* 响应式 */
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px 15px;
+            }
+
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .upload-card {
+                padding: 25px;
+            }
+
+            .upload-zone {
+                padding: 30px 15px;
+            }
+
+            .features {
+                grid-template-columns: 1fr;
+            }
+
+            .file-preview {
+                flex-direction: column;
+            }
+
+            .file-item {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-video" style="color: #00CED1; margin-right: 10px;"></i>播客视频生成器</h1>
+            <p>上传音频和封面，一键生成 9:16 竖屏视频</p>
+        </div>
+
+        <!-- 上传卡片 -->
+        <div class="upload-card" id="uploadCard">
+            <div class="upload-zone" id="uploadZone">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <h3>拖拽文件到这里</h3>
+                <p>或点击选择音频和封面图片</p>
+            </div>
+
+            <input type="file" id="audioInput" class="file-inputs" accept=".mp3,.wav,.m4a,.aac,.ogg,.flac">
+            <input type="file" id="coverInput" class="file-inputs" accept=".jpg,.jpeg,.png,.webp">
+
+            <div class="file-preview">
+                <div class="file-item" id="audioPreview">
+                    <div class="file-icon">
+                        <i class="fas fa-music"></i>
+                    </div>
+                    <div class="file-info">
+                        <div class="file-label">音频文件 *</div>
+                        <div class="file-name" id="audioName">未选择</div>
+                    </div>
+                    <button class="file-remove" id="audioRemove" style="display: none;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <div class="file-item" id="coverPreview">
+                    <img class="cover-preview" id="coverImage">
+                    <div class="file-icon" id="coverIcon">
+                        <i class="fas fa-image"></i>
+                    </div>
+                    <div class="file-info">
+                        <div class="file-label">封面图片 *</div>
+                        <div class="file-name" id="coverName">未选择</div>
+                    </div>
+                    <button class="file-remove" id="coverRemove" style="display: none;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            <button class="submit-btn" id="submitBtn" disabled>
+                <i class="fas fa-magic"></i>
+                <span>开始生成视频</span>
+            </button>
+
+            <div class="features">
+                <div class="feature-item">
+                    <i class="fas fa-mobile-alt"></i>
+                    <h4>9:16 竖屏</h4>
+                    <p>适配抖音/小红书</p>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-wave-square"></i>
+                    <h4>动态波形</h4>
+                    <p>青色音频可视化</p>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-expand"></i>
+                    <h4>智能填充</h4>
+                    <p>高斯模糊背景</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 进度卡片 -->
+        <div class="progress-card" id="progressCard">
+            <div class="progress-icon processing" id="progressIcon">
+                <i class="fas fa-cog fa-spin"></i>
+            </div>
+            <h2 class="progress-title" id="progressTitle">正在处理...</h2>
+            <p class="progress-subtitle" id="progressSubtitle">请稍候，视频生成中</p>
+            
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <div class="progress-percent" id="progressPercent">0%</div>
+
+            <div id="downloadSection" style="display: none;">
+                <a class="download-btn" id="downloadBtn" href="#">
+                    <i class="fas fa-download"></i>
+                    <span>下载视频</span>
+                </a>
+                <br>
+                <button class="reset-btn" id="resetBtn">
+                    <i class="fas fa-redo"></i> 继续生成
+                </button>
+            </div>
+
+            <div id="errorSection" style="display: none;">
+                <div class="status-badge error">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span id="errorMessage">处理失败</span>
+                </div>
+                <br>
+                <button class="reset-btn" id="retryBtn">
+                    <i class="fas fa-redo"></i> 重试
+                </button>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>基于 FFmpeg 构建 · 本地处理，数据安全</p>
+        </div>
+    </div>
+
+    <script>
+        class VideoGenerator {
+            constructor() {
+                this.audioFile = null;
+                this.coverFile = null;
+                this.taskId = null;
+                this.pollInterval = null;
+                this.init();
+            }
+
+            init() {
+                this.bindEvents();
+                this.checkFFmpeg();
+            }
+
+            bindEvents() {
+                const uploadZone = document.getElementById('uploadZone');
+                const audioInput = document.getElementById('audioInput');
+                const coverInput = document.getElementById('coverInput');
+                const submitBtn = document.getElementById('submitBtn');
+
+                // 点击上传区域
+                uploadZone.addEventListener('click', () => {
+                    if (!this.audioFile) {
+                        audioInput.click();
+                    } else if (!this.coverFile) {
+                        coverInput.click();
+                    } else {
+                        audioInput.click();
+                    }
+                });
+
+                // 拖拽事件
+                uploadZone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    uploadZone.classList.add('dragover');
+                });
+
+                uploadZone.addEventListener('dragleave', () => {
+                    uploadZone.classList.remove('dragover');
+                });
+
+                uploadZone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    uploadZone.classList.remove('dragover');
+                    this.handleFiles(e.dataTransfer.files);
+                });
+
+                // 文件选择
+                audioInput.addEventListener('change', (e) => {
+                    if (e.target.files[0]) {
+                        this.setAudioFile(e.target.files[0]);
+                    }
+                });
+
+                coverInput.addEventListener('change', (e) => {
+                    if (e.target.files[0]) {
+                        this.setCoverFile(e.target.files[0]);
+                    }
+                });
+
+                // 移除文件
+                document.getElementById('audioRemove').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.removeAudioFile();
+                });
+
+                document.getElementById('coverRemove').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.removeCoverFile();
+                });
+
+                // 提交
+                submitBtn.addEventListener('click', () => this.startProcessing());
+
+                // 重置
+                document.getElementById('resetBtn').addEventListener('click', () => this.reset());
+                document.getElementById('retryBtn').addEventListener('click', () => this.reset());
+            }
+
+            handleFiles(files) {
+                for (const file of files) {
+                    const ext = file.name.split('.').pop().toLowerCase();
+                    if (['mp3', 'wav', 'm4a', 'aac', 'ogg', 'flac'].includes(ext)) {
+                        this.setAudioFile(file);
+                    } else if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
+                        this.setCoverFile(file);
+                    }
+                }
+            }
+
+            setAudioFile(file) {
+                this.audioFile = file;
+                document.getElementById('audioName').textContent = file.name;
+                document.getElementById('audioPreview').classList.add('has-file');
+                document.getElementById('audioRemove').style.display = 'block';
+                this.updateSubmitButton();
+            }
+
+            setCoverFile(file) {
+                this.coverFile = file;
+                document.getElementById('coverName').textContent = file.name;
+                document.getElementById('coverPreview').classList.add('has-file');
+                document.getElementById('coverRemove').style.display = 'block';
+                
+                // 显示预览图
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = document.getElementById('coverImage');
+                    img.src = e.target.result;
+                    img.style.display = 'block';
+                    document.getElementById('coverIcon').style.display = 'none';
+                };
+                reader.readAsDataURL(file);
+                
+                this.updateSubmitButton();
+            }
+
+            removeAudioFile() {
+                this.audioFile = null;
+                document.getElementById('audioName').textContent = '未选择';
+                document.getElementById('audioPreview').classList.remove('has-file');
+                document.getElementById('audioRemove').style.display = 'none';
+                document.getElementById('audioInput').value = '';
+                this.updateSubmitButton();
+            }
+
+            removeCoverFile() {
+                this.coverFile = null;
+                document.getElementById('coverName').textContent = '未选择';
+                document.getElementById('coverPreview').classList.remove('has-file');
+                document.getElementById('coverRemove').style.display = 'none';
+                document.getElementById('coverInput').value = '';
+                document.getElementById('coverImage').style.display = 'none';
+                document.getElementById('coverIcon').style.display = 'flex';
+                this.updateSubmitButton();
+            }
+
+            updateSubmitButton() {
+                const btn = document.getElementById('submitBtn');
+                btn.disabled = !(this.audioFile && this.coverFile);
+            }
+
+            async checkFFmpeg() {
+                try {
+                    const res = await fetch('/api/check-ffmpeg');
+                    const data = await res.json();
+                    if (!data.available) {
+                        alert('警告：FFmpeg 未安装，请先安装：brew install ffmpeg');
+                    }
+                } catch (e) {
+                    console.error('检查 FFmpeg 失败', e);
+                }
+            }
+
+            async startProcessing() {
+                const formData = new FormData();
+                formData.append('audio', this.audioFile);
+                formData.append('cover', this.coverFile);
+
+                // 切换到进度视图
+                document.getElementById('uploadCard').style.display = 'none';
+                document.getElementById('progressCard').classList.add('active');
+                this.resetProgressUI();
+
+                try {
+                    const res = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await res.json();
+                    
+                    if (data.error) {
+                        this.showError(data.error);
+                        return;
+                    }
+
+                    this.taskId = data.task_id;
+                    this.startPolling();
+                } catch (e) {
+                    this.showError('上传失败：' + e.message);
+                }
+            }
+
+            startPolling() {
+                this.pollInterval = setInterval(() => this.checkStatus(), 1000);
+            }
+
+            async checkStatus() {
+                if (!this.taskId) return;
+
+                try {
+                    const res = await fetch(`/api/status/${this.taskId}`);
+                    const data = await res.json();
+
+                    this.updateProgress(data.progress || 0);
+
+                    if (data.status === 'completed') {
+                        this.onComplete();
+                    } else if (data.status === 'failed') {
+                        this.showError(data.error || '处理失败');
+                    }
+                } catch (e) {
+                    console.error('检查状态失败', e);
+                }
+            }
+
+            updateProgress(percent) {
+                document.getElementById('progressBar').style.width = percent + '%';
+                document.getElementById('progressPercent').textContent = percent + '%';
+                
+                if (percent < 20) {
+                    document.getElementById('progressSubtitle').textContent = '准备中...';
+                } else if (percent < 50) {
+                    document.getElementById('progressSubtitle').textContent = '正在处理音频波形...';
+                } else if (percent < 90) {
+                    document.getElementById('progressSubtitle').textContent = '正在合成视频...';
+                } else {
+                    document.getElementById('progressSubtitle').textContent = '即将完成...';
+                }
+            }
+
+            onComplete() {
+                clearInterval(this.pollInterval);
+                
+                document.getElementById('progressIcon').innerHTML = '<i class="fas fa-check-circle"></i>';
+                document.getElementById('progressIcon').className = 'progress-icon completed';
+                document.getElementById('progressTitle').textContent = '生成完成！';
+                document.getElementById('progressSubtitle').textContent = '视频已准备好下载';
+                
+                document.getElementById('downloadBtn').href = `/api/download/${this.taskId}`;
+                document.getElementById('downloadSection').style.display = 'block';
+            }
+
+            showError(message) {
+                clearInterval(this.pollInterval);
+                
+                document.getElementById('progressIcon').innerHTML = '<i class="fas fa-times-circle"></i>';
+                document.getElementById('progressIcon').className = 'progress-icon failed';
+                document.getElementById('progressTitle').textContent = '处理失败';
+                document.getElementById('progressSubtitle').textContent = '';
+                document.getElementById('errorMessage').textContent = message;
+                document.getElementById('errorSection').style.display = 'block';
+            }
+
+            resetProgressUI() {
+                document.getElementById('progressIcon').innerHTML = '<i class="fas fa-cog fa-spin"></i>';
+                document.getElementById('progressIcon').className = 'progress-icon processing';
+                document.getElementById('progressTitle').textContent = '正在处理...';
+                document.getElementById('progressSubtitle').textContent = '请稍候，视频生成中';
+                document.getElementById('progressBar').style.width = '0%';
+                document.getElementById('progressPercent').textContent = '0%';
+                document.getElementById('downloadSection').style.display = 'none';
+                document.getElementById('errorSection').style.display = 'none';
+            }
+
+            reset() {
+                clearInterval(this.pollInterval);
+                this.taskId = null;
+                this.audioFile = null;
+                this.coverFile = null;
+                
+                // 重置文件预览
+                this.removeAudioFile();
+                this.removeCoverFile();
+                
+                // 切换回上传视图
+                document.getElementById('progressCard').classList.remove('active');
+                document.getElementById('uploadCard').style.display = 'block';
+            }
+        }
+
+        // 初始化
+        const app = new VideoGenerator();
+    </script>
+</body>
+</html>

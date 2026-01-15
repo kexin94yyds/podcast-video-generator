@@ -5,9 +5,9 @@
 
 ## 如何调用 cunzhi 脚本
 
-【必须使用以下命令，端口号 5312 不可省略】：
+【必须使用以下命令，端口号 5314 不可省略】：
 ```bash
-python3 "/Users/apple/cunzhi/bin/cunzhi.py" 5312
+python3 "/Users/apple/cunzhi/bin/cunzhi.py" 5314
 ```
 
 - 脚本会返回 `KeepGoing=true` 或 `KeepGoing=false`
@@ -18,10 +18,10 @@ python3 "/Users/apple/cunzhi/bin/cunzhi.py" 5312
 
 ## 文件交互模式
 
-1. AI 将任务摘要写入 `~/.cunzhi/5312/output.md`
-2. AI 调用脚本: `python3 cunzhi.py 5312`
+1. AI 将任务摘要写入 `~/.cunzhi/5314/output.md`
+2. AI 调用脚本: `python3 cunzhi.py 5314`
 3. 脚本弹出 iterate GUI 显示内容
-4. 用户输入后，结果写入 `~/.cunzhi/5312/input.md`
+4. 用户输入后，结果写入 `~/.cunzhi/5314/input.md`
 5. AI 读取 `input.md` 获取用户指令
 
 ## 返回格式说明
