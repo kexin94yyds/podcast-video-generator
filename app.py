@@ -24,7 +24,7 @@ ALLOWED_IMAGE = {'jpg', 'jpeg', 'png', 'webp'}
 WIDTH = 1080
 HEIGHT = 1920
 FPS = 30
-WAVEFORM_COLOR = "0x00CED1"
+WAVEFORM_COLOR = "0xFFFFFF"
 WAVEFORM_HEIGHT = 150
 WAVEFORM_Y_POSITION = 1400
 
@@ -175,18 +175,10 @@ def upload_files():
     audio_path = UPLOAD_FOLDER / audio_filename
     audio_file.save(str(audio_path))
     
-    # 保存封面（如果有）
-    if cover_file and cover_file.filename and allowed_image(cover_file.filename):
-        cover_filename = secure_filename(f"{task_id}_{cover_file.filename}")
-        cover_path = UPLOAD_FOLDER / cover_filename
-        cover_file.save(str(cover_path))
-    else:
-        # 使用默认封面
-        default_cover = Path(__file__).parent / 'static' / 'default_cover.jpg'
-        if default_cover.exists():
-            cover_path = default_cover
-        else:
-            return jsonify({'error': '请上传封面图片'}), 400
+    # 使用固定封面
+    cover_path = Path(__file__).parent / 'static' / 'default_cover.png'
+    if not cover_path.exists():
+        return jsonify({'error': '默认封面不存在'}), 500
     
     # 输出文件
     output_filename = f"{task_id}_video.mp4"
